@@ -1,4 +1,3 @@
-import java.net.*;
 import java.io.*;
 
 public class ChatClient {
@@ -17,6 +16,7 @@ public class ChatClient {
 			pw = new PrintWriter(new OutputStreamWriter(sock.getOutputStream()));
 			br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
+			//system,in은 바이트 단위, BufferedReader는 라인단위.
 			// send username.
 			pw.println(args[0]);
 			pw.flush();

@@ -26,13 +26,20 @@ class ChatThread extends Thread{
 	private BufferedReader br;
 	private HashMap hm;
 	private boolean initFlag = false;
+	private ArrayList<String> banList ;
+	private PrintWriter pwToMe ;
+
 	public ChatThread(Socket sock, HashMap hm){
 		this.sock = sock;
 		this.hm = hm;
 		try{
+			
 			PrintWriter pw = new PrintWriter(new OutputStreamWriter(sock.getOutputStream()));
 			br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			id = br.readLine();
+			pwToMe = pw ;
+			banList = new ArrayList<String>() ;
+			setBanList();
 			broadcast(id + " entered.");
 			System.out.println("[Server] User (" + id + ") entered.");
 			synchronized(hm){
@@ -47,12 +54,32 @@ class ChatThread extends Thread{
 		try{
 			String line = null;
 			while((line = br.readLine()) != null){
+				
+				boolean banned = false ;
+
 				if(line.equals("/quit"))
 					break;
+				
+				for(String banWord : banList){	
+					if(line.contains(banWord)){
+						pwToMe.println("you sent bad message");
+						pwToMe.flush();
+						banned = true ;
+						break;
+					}
+				}
+
+				if (banned==true) continue ;
+
 				if(line.indexOf("/to ") == 0){
 					sendmsg(line);
-				}else
+				}
+
+				else if(line.equals("/userlist")) {
+					send_userlist();	
+				}else{
 					broadcast(id + " : " + line);
+				}
 			}
 		}catch(Exception ex){
 			System.out.println(ex);
@@ -67,13 +94,17 @@ class ChatThread extends Thread{
 			}catch(Exception ex){}
 		}
 	} // run
+	
 	public void sendmsg(String msg){
 		int start = msg.indexOf(" ") +1;
 		int end = msg.indexOf(" ", start);
 		if(end != -1){
 			String to = msg.substring(start, end);
 			String msg2 = msg.substring(end+1);
-			Object obj = hm.get(to);
+			Object obj =null ;
+			synchronized(hm){
+				obj = hm.get(to);
+			}
 			if(obj != null){
 				PrintWriter pw = (PrintWriter)obj;
 				pw.println(id + " whisphered. : " + msg2);
@@ -81,15 +112,92 @@ class ChatThread extends Thread{
 			} // if
 		}
 	} // sendmsg
+
+	public void sendWarning(){
+		
+	}
+	
 	public void broadcast(String msg){
 		synchronized(hm){
+		
+			Set<String> set = hm.keySet();	
+			for(String iter : set){
+			
+				if(iter != id){
+					Object obj = hm.get(iter);
+					PrintWriter pw = (PrintWriter) obj;
+					pw.println(msg);
+					pw.flush();
+
+				}
+			/*
 			Collection collection = hm.values();
 			Iterator iter = collection.iterator();
 			while(iter.hasNext()){
+				
 				PrintWriter pw = (PrintWriter)iter.next();
 				pw.println(msg);
 				pw.flush();
+
+			}*/
+
 			}
+		} // broadcast
+	}
+	
+	public void send_userlist(){
+			
+		synchronized(hm){
+			
+			TreeSet<String> sortedUserList = new TreeSet<String>(hm.keySet()) ;
+
+			for(String username : sortedUserList){	
+				if (username==id){
+					Object obj =null ;
+					synchronized(hm){
+						obj = hm.get(username);
+					}	
+					
+					PrintWriter pw = (PrintWriter) obj ;
+		
+					pw.println("----------------------------------");
+					pw.flush();
+					for(String allUser : sortedUserList){	
+						pw.println(allUser) ;
+						pw.flush();
+					}				
+					pw.println("The number of Users are "+ sortedUserList.size());
+					pw.flush();
+					pw.println("----------------------------------") ;
+					pw.flush();
+				}
+			}
+		}		
+	}
+
+	public void setBanList(){
+	
+		String filepath = "banList.txt" ;
+		String line = "" ;
+		
+		try{
+
+			Scanner inputStream = new Scanner(new File(filepath));
+			while(inputStream.hasNextLine()){
+				line = inputStream.nextLine();
+				banList.add(line);		
+			}
+			
+			inputStream.close();
 		}
-	} // broadcast
+		catch (Exception e){
+
+			System.out.println(e);
+		}
+
+
+	}
 }
+
+	
+
