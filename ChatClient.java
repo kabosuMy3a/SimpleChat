@@ -1,3 +1,5 @@
+//github.com/kabosuMy3a
+
 import java.io.*;
 
 public class ChatClient {
