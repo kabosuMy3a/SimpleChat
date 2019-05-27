@@ -1,6 +1,7 @@
 //github.com/kabosuMy3a
 
 import java.io.*;
+import java.net.*;
 
 public class ChatClient {
 

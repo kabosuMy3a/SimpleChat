@@ -62,6 +62,11 @@ class ChatThread extends Thread{
 				if(line.equals("/quit"))
 					break;
 				
+				/*
+				 * following code is checking user sends bad message
+				 * until continue;
+				 */
+				
 				for(String banWord : banList){	
 					if(line.contains(banWord)){
 						pwToMe.println("you sent bad message");
@@ -115,10 +120,8 @@ class ChatThread extends Thread{
 		}
 	} // sendmsg
 
-	public void sendWarning(){
-		
-	}
 	
+	//don't broadcast to me	
 	public void broadcast(String msg){
 		synchronized(hm){
 		
@@ -146,7 +149,10 @@ class ChatThread extends Thread{
 			}
 		} // broadcast
 	}
-	
+
+	/*
+	 * this method show userlist and The number of Users 
+	 */
 	public void send_userlist(){
 			
 		synchronized(hm){
@@ -177,6 +183,10 @@ class ChatThread extends Thread{
 		}		
 	}
 
+	/*
+	 * set bad word from banList.txt ;
+	 * if you want to edit banWord please check banList.txt
+	 */
 	public void setBanList(){
 	
 		String filepath = "banList.txt" ;
@@ -187,7 +197,7 @@ class ChatThread extends Thread{
 			Scanner inputStream = new Scanner(new File(filepath));
 			while(inputStream.hasNextLine()){
 				line = inputStream.nextLine();
-				banList.add(line);		
+				banList.add(line);
 			}
 			
 			inputStream.close();
@@ -196,8 +206,6 @@ class ChatThread extends Thread{
 
 			System.out.println(e);
 		}
-
-
 	}
 }
 
