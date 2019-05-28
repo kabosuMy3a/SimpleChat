@@ -159,27 +159,19 @@ class ChatThread extends Thread{
 			
 			TreeSet<String> sortedUserList = new TreeSet<String>(hm.keySet()) ;
 
-			for(String username : sortedUserList){	
-				if (username==id){
-					Object obj =null ;
-					synchronized(hm){
-						obj = hm.get(username);
-					}	
-					
-					PrintWriter pw = (PrintWriter) obj ;
 		
-					pw.println("----------------------------------");
-					pw.flush();
-					for(String allUser : sortedUserList){	
-						pw.println(allUser) ;
-						pw.flush();
-					}				
-					pw.println("The number of Users are "+ sortedUserList.size());
-					pw.flush();
-					pw.println("----------------------------------") ;
-					pw.flush();
-				}
-			}
+			pwToMe.println("----------------------------------");
+			pwToMe.flush();
+			for(String allUser : sortedUserList){	
+				pwToMe.println(allUser) ;
+				pwToMe.flush();
+			}		
+			pwToMe.println("The number of Users are "+ sortedUserList.size());
+			pwToMe.flush();
+			pwToMe.println("----------------------------------") ;
+			pwToMe.flush();
+				
+			
 		}		
 	}
 
