@@ -1,25 +1,58 @@
 //github.com/kabosuMy3a
 
+import java.text.*;
 import java.net.*;
 import java.io.*;
 import java.util.*;
 
 public class ChatServer {
 
+	 Date timeNow = new Date() ;
+	 SimpleDateFormat DateFormat = new SimpleDateFormat("HH:mm:ss") ;
+	 static ArrayList<String> banList = new ArrayList<String>() ;	
+
 	public static void main(String[] args) {
+	
+		Date timeNow = new Date() ;
+	 	SimpleDateFormat DateFormat = new SimpleDateFormat("HH:mm:ss") ;
+		
 		try{
 			ServerSocket server = new ServerSocket(10001);
+			System.out.print("["+DateFormat.format(timeNow)+"] ");
 			System.out.println("Waiting connection...");
 			HashMap hm = new HashMap();
+			setBanList();
+
 			while(true){
 				Socket sock = server.accept();
-				ChatThread chatthread = new ChatThread(sock, hm);
+				ChatThread chatthread = new ChatThread(sock, hm, banList);
 				chatthread.start();
 			} // while
 		}catch(Exception e){
 			System.out.println(e);
 		}
 	} // main
+
+	public static void setBanList(){
+	
+		String filepath = "banlist.txt" ;
+		String line = "" ;
+		
+		try{
+
+			Scanner inputStream = new Scanner(new File(filepath));
+			while(inputStream.hasNextLine()){
+				line = inputStream.nextLine();
+				banList.add(line);
+			}
+			
+			inputStream.close();
+		}
+		catch (Exception e){
+
+			System.out.println(e);
+		}
+	}
 }
 
 class ChatThread extends Thread{
@@ -30,10 +63,13 @@ class ChatThread extends Thread{
 	private boolean initFlag = false;
 	private ArrayList<String> banList ;
 	private PrintWriter pwToMe ;
+	private Date timeNow ;
+	private SimpleDateFormat DateFormat ;
 
-	public ChatThread(Socket sock, HashMap hm){
+	public ChatThread(Socket sock, HashMap hm, ArrayList<String> banList){
 		this.sock = sock;
 		this.hm = hm;
+		this.banList = banList ;
 		try{
 			
 			PrintWriter pw = new PrintWriter(new OutputStreamWriter(sock.getOutputStream()));
@@ -41,9 +77,12 @@ class ChatThread extends Thread{
 			id = br.readLine();
 			pwToMe = pw ;
 			banList = new ArrayList<String>() ;
-			setBanList();
+			timeNow = new Date();
+			DateFormat = new SimpleDateFormat("HH:mm:ss");
 			broadcast(id + " entered.");
+			System.out.print("["+DateFormat.format(timeNow)+"] ");
 			System.out.println("[Server] User (" + id + ") entered.");
+			
 			synchronized(hm){
 				hm.put(this.id, pw);
 			}
@@ -56,7 +95,6 @@ class ChatThread extends Thread{
 		try{
 			String line = null;
 			while((line = br.readLine()) != null){
-				
 				boolean banned = false ;
 
 				if(line.equals("/quit"))
@@ -69,16 +107,36 @@ class ChatThread extends Thread{
 				
 				for(String banWord : banList){	
 					if(line.contains(banWord)){
-						pwToMe.println("you sent bad message");
+							
+						if(!banned){ 
+							pwToMe.print("["+DateFormat.format(timeNow)+"] ");
+							pwToMe.print("you sent bad message");
+							pwToMe.flush();
+						}	
+						pwToMe.print(" ||"+banWord);
 						pwToMe.flush();
 						banned = true ;
-						break;
 					}
 				}
 
-				if (banned==true) continue ;
+				if (banned==true){
+				       	pwToMe.println();
+					pwToMe.flush();
+					continue ;
+				}
 
-				if(line.indexOf("/to ") == 0){
+				if(line.equals("/spamlist")){
+
+					printSpamList();
+				}
+
+				else if(line.indexOf("/addspam ")==0){
+
+					addSpamToBanList(line.substring(line.indexOf(" ")+1));
+
+				}
+
+				else if(line.indexOf("/to ") == 0){
 					sendmsg(line);
 				}
 
@@ -114,7 +172,8 @@ class ChatThread extends Thread{
 			}
 			if(obj != null){
 				PrintWriter pw = (PrintWriter)obj;
-				pw.println(id + " whisphered. : " + msg2);
+				pw.print("["+DateFormat.format(timeNow)+"] ");
+				pw.println(id + " whisphered: " + msg2);
 				pw.flush();
 			} // if
 		}
@@ -131,6 +190,7 @@ class ChatThread extends Thread{
 				if(iter != id){
 					Object obj = hm.get(iter);
 					PrintWriter pw = (PrintWriter) obj;
+					pw.print("["+DateFormat.format(timeNow)+"] ");
 					pw.println(msg);
 					pw.flush();
 
@@ -159,14 +219,14 @@ class ChatThread extends Thread{
 			
 			TreeSet<String> sortedUserList = new TreeSet<String>(hm.keySet()) ;
 
-		
 			pwToMe.println("----------------------------------");
+			pwToMe.println("["+DateFormat.format(timeNow)+"] ");
 			pwToMe.flush();
 			for(String allUser : sortedUserList){	
 				pwToMe.println(allUser) ;
 				pwToMe.flush();
 			}		
-			pwToMe.println("The number of Users are "+ sortedUserList.size());
+			pwToMe.println("The number of Users is "+ sortedUserList.size());
 			pwToMe.flush();
 			pwToMe.println("----------------------------------") ;
 			pwToMe.flush();
@@ -179,25 +239,48 @@ class ChatThread extends Thread{
 	 * set bad word from banList.txt ;
 	 * if you want to edit banWord please check banList.txt
 	 */
-	public void setBanList(){
-	
-		String filepath = "banList.txt" ;
-		String line = "" ;
+
+
+	public void printSpamList(){
 		
+			pwToMe.println("----------------------------------") ;
+			pwToMe.println("["+DateFormat.format(timeNow)+"] ");
+			synchronized(banList){
+				for(String spamline : banList){
+					pwToMe.println(spamline);			
+				}
+				pwToMe.println("The number of spams is "+ banList.size());
+			}
+			pwToMe.println("----------------------------------") ;
+			pwToMe.flush();
+
+	}
+
+	public synchronized void addSpamToBanList(String spam){
+		
+		banList.add(spam);
+		
+		PrintWriter outputStream = null;
+
 		try{
 
-			Scanner inputStream = new Scanner(new File(filepath));
-			while(inputStream.hasNextLine()){
-				line = inputStream.nextLine();
-				banList.add(line);
+			File file = new File("banlist.txt");
+			if(!file.exists()){
+				outputStream = new PrintWriter("banlist.txt");
 			}
-			
-			inputStream.close();
-		}
-		catch (Exception e){
 
+			else{
+				FileWriter filewriter = new FileWriter("banlist.txt", true);
+				outputStream = new PrintWriter(filewriter);
+			}
+		}catch(Exception e){
 			System.out.println(e);
 		}
+
+		outputStream.println(spam);
+		outputStream.close();	
+
+
 	}
 }
 
