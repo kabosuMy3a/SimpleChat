@@ -7,9 +7,7 @@ import java.util.*;
 
 public class ChatServer {
 
-	 Date timeNow = new Date() ;
-	 SimpleDateFormat DateFormat = new SimpleDateFormat("HH:mm:ss") ;
-	 static ArrayList<String> banList = new ArrayList<String>() ;	
+	static ArrayList<String> banList = new ArrayList<String>() ;	
 
 	public static void main(String[] args) {
 	
